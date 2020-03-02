@@ -11,6 +11,9 @@
 #include <limits>
 #include <cassert>
 
+#include "vcl/vectorclass.h"
+#include "vcl/vectormath_exp.h"
+
 #include "utils/maths.hpp"
 
 namespace octopus { namespace model {
@@ -174,6 +177,33 @@ ConstantMixtureGenotypeLikelihoodModel::evaluate_haploid(const Genotype<IndexedH
     return std::accumulate(std::cbegin(log_likelihoods), std::cend(log_likelihoods), LogProbability {0});
 }
 
+template <typename VectorType>
+inline auto log_sum_exp(const VectorType a, const VectorType b)
+{
+    const auto minv = min(a, b);
+    const auto maxv = max(a, b);
+    return maxv + log(1 + exp(minv - maxv));
+}
+
+auto vector_diploid_mixture(const std::vector<double>& a, const std::vector<double>& b)
+{
+    assert(a.size() == b.size());
+    const auto N = a.size();
+    double result {0};
+    Vec4d avec, bvec;
+    for (std::size_t i {0}; i < N; i += avec.size()) {
+        if (i + avec.size() - 1 < N) {
+            avec.load(a.data() + i);
+            bvec.load(b.data() + i);
+        } else {
+            avec.load_partial(N - i, a.data() + i);
+            bvec.load_partial(N - i, b.data() + i);
+        }
+        result += horizontal_add(log_sum_exp(avec, bvec) - ln<double>(2));
+    }
+    return result;
+}
+
 ConstantMixtureGenotypeLikelihoodModel::LogProbability
 ConstantMixtureGenotypeLikelihoodModel::evaluate_diploid(const Genotype<IndexedHaplotype<>>& genotype) const
 {
@@ -182,11 +212,12 @@ ConstantMixtureGenotypeLikelihoodModel::evaluate_diploid(const Genotype<IndexedH
         return std::accumulate(std::cbegin(log_likelihoods1), std::cend(log_likelihoods1), LogProbability {0});
     } else {
         const auto& log_likelihoods2 = likelihoods_[genotype[1]];
-        return std::inner_product(std::cbegin(log_likelihoods1), std::cend(log_likelihoods1),
-                                  std::cbegin(log_likelihoods2), LogProbability {0}, std::plus<> {},
-                                  [] (const auto a, const auto b) -> LogProbability {
-                                      return maths::log_sum_exp(a, b) - ln<decltype(a)>(2);
-                                  });
+        return vector_diploid_mixture(log_likelihoods1, log_likelihoods2);
+        // return std::inner_product(std::cbegin(log_likelihoods1), std::cend(log_likelihoods1),
+        //                           std::cbegin(log_likelihoods2), LogProbability {0}, std::plus<> {},
+        //                           [] (const auto a, const auto b) -> LogProbability {
+        //                               return maths::log_sum_exp(a, b) - ln<decltype(a)>(2);
+        //                           });
     }
 }
 
