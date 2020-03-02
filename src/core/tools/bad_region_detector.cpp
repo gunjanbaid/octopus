@@ -14,6 +14,7 @@
 
 #include "concepts/mappable.hpp"
 #include "concepts/comparable.hpp"
+#include "concepts/mappable_range.hpp"
 #include "basics/contig_region.hpp"
 #include "basics/aligned_read.hpp"
 #include "containers/mappable_flat_set.hpp"
@@ -294,7 +295,7 @@ auto find_dense_regions(const MappableFlatSet<Variant>& variants, const ReadMap&
     for (const auto& p : reads) {
         for (const auto& read : p.second) {
             const auto interacting_blocks = bases(contained_range(blocks, contig_region(read)));
-            if (size(interacting_blocks) > 1) {
+            if (boost::size(interacting_blocks) > 1) {
                 auto joined_block_region = closed_region(interacting_blocks.front(), interacting_blocks.back());
                 auto joined_block_count = sum_block_counts(interacting_blocks);
                 auto hint = blocks.erase(std::cbegin(interacting_blocks), std::cend(interacting_blocks));

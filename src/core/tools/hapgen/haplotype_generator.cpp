@@ -15,11 +15,9 @@
 #include "core/types/variant.hpp"
 #include "core/types/haplotype.hpp"
 #include "concepts/mappable.hpp"
+#include "concepts/mappable_range.hpp"
 #include "utils/mappable_algorithms.hpp"
 #include "utils/append.hpp"
-
-#include <iostream> // DEBUG
-#include "timers.hpp"
 
 #define _unused(x) ((void)(x))
 
@@ -648,7 +646,7 @@ auto merge(const std::vector<GenomicRegion>& indicator_blocks, const std::vector
     for (auto&& exclusion_zone : exclusion_zones) {
         auto interacting = bases(overlap_range(last_block, std::cend(indicator_blocks), exclusion_zone, BidirectionallySortedTag {}));
         result.insert(std::cend(result), last_block, std::begin(interacting));
-        if (empty(interacting)) {
+        if (boost::empty(interacting)) {
             result.push_back(std::move(exclusion_zone));
         } else {
             auto indicator_block = closed_region(interacting.front(), interacting.back());
