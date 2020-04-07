@@ -13,6 +13,6 @@ RUN apt-get -y install \
 
 # Install Octopus
 COPY . /octopus
-RUN octopus/scripts/install.py --install-dependencies --download-forests --threads 4
+RUN octopus/scripts/install.py --dependencies --forests --threads 4
 
 ENTRYPOINT ["octopus/bin/octopus"]
